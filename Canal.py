@@ -6,7 +6,7 @@ import time
 prob_eliminar_mensagem = 4
 prob_duplicar_segmento = 3
 prop_corromper_byte = 2
-milesegundos_delay = 80
+milesegundos_delay = 0
 cortar_bytes = 1024
 
 class Canal():
@@ -66,7 +66,7 @@ class Canal():
             return dados, socket_address
  
     def consolidarErros(self):
-        self.propriedades.consolidacao()
+        self.propriedades.ImprimirErros()
 
 class Propiedades():
     def __init__(self):
@@ -78,7 +78,7 @@ class Propiedades():
         self.mensagensCorrompidas = 0
         self.mensagensCortadas = 0
 
-    def eliminarMensagem(self, probabilidade: float) -> bool:
+    def __eliminarMensagem(self, probabilidade: float) -> bool:
         '''Pocentagem de 0 a 100'''
 
         resultado = random.uniform(0, 1)
@@ -93,14 +93,14 @@ class Propiedades():
         
         return False
 
-    def delay(self, mile: float):
+    def __delay(self, mile: float):
         '''delay de milesegundos'''
         
         print("Delay")
         time.sleep(mile/1000)
         self.mensagensAtrasadas += 1
 
-    def duplicarSegmento(self, probabilidade: float, dado: bytes) -> bytes:
+    def __duplicarSegmento(self, probabilidade: float, dado: bytes) -> bytes:
         '''Pocentagem de 0 a 100'''
 
         resultado = random.uniform(0, 1)
@@ -115,7 +115,7 @@ class Propiedades():
         
         return dado
 
-    def corromperByte(self, probabilidade: float, dado: bytes):
+    def __corromperByte(self, probabilidade: float, dado: bytes):
         '''Corrompe 1 byte do dado aleatoriamente'''
         
         resultado = random.uniform(0, 1)
@@ -136,7 +136,7 @@ class Propiedades():
         
         return dado
 
-    def cortarBytes(self, tamanho: int, dado: bytes):
+    def __cortarBytes(self, tamanho: int, dado: bytes):
         ''' Corta o dados maiores que tamanho em bytes'''
         
         dadoCortado = dado
@@ -155,21 +155,22 @@ class Propiedades():
         
         self.mensagens += 1
 
-        self.delay(milesegundos_delay)
+        self.__delay(milesegundos_delay)
 
-        dados = self.duplicarSegmento(prob_duplicar_segmento, dados)
+        dados = self.__duplicarSegmento(prob_duplicar_segmento, dados)
 
-        dados = self.corromperByte(prop_corromper_byte, dados)
+        dados = self.__corromperByte(prop_corromper_byte, dados)
 
-        dados = self.cortarBytes(cortar_bytes, dados)
+        dados = self.__cortarBytes(cortar_bytes, dados)
 
-        eliminarMensagem = self.eliminarMensagem(prob_eliminar_mensagem)
+        eliminarMensagem = self.__eliminarMensagem(prob_eliminar_mensagem)
         if eliminarMensagem:
             return 1, dados
 
         return 0, dados
 
-    def consolidacao(self):
+    def ImprimirErros(self):
+        print( "\n" + "---" * 5 + " Consolidação de erros " + "---" * 5)
         print(f'''
             Total de mensagens enviadas: {self.mensagens}
             Total de mensagens eliminadas: {self.mensagensEliminadas}
@@ -178,3 +179,4 @@ class Propiedades():
             Total de mensagens corrompidas: {self.mensagensCorrompidas}
             Total de mensagens cortadas: {self.mensagensCortadas}
         ''')
+        print("---" * 18)
