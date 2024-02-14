@@ -1,20 +1,56 @@
 import threading
+import socket
+import requests
 from Canal import Canal
 
 # Configurar o servidor
 host = 'localhost'
 porta = 9000
 
-# Criar um socket UDP
-servidor_socket = Canal(host, porta)
-servidor_socket.associarSocketPorta()
+while True:
+    try:
+        portaServidor = int(input("Qual é a porta que o servidor vai escutar ? "))
 
-# clientes
-clientes = {}
+        host = socket.gethostbyname(socket.gethostname())
 
-#Maximo de requisições
-maximoRequisicap = 20
-contador = 0
+        response = requests.get('https://ipinfo.io')
+        public_ip = response.json()['ip']
+        cidade = response.json()['city']
+        regiao = response.json()['region']
+        pais = response.json()['country']
+        localizacao = response.json()['loc']
+
+        print('---' * 18)
+        print(f"servidor: ({host} : {portaServidor})")
+        print('---' * 18)
+        # Exibir informações de geolocalização
+        print(f"Endereço IP publico: {public_ip}")
+        print("Informações de Geolocalização:")
+        print(f"  País: {pais}")
+        print(f"  Região: {regiao}")
+        print(f"  Cidade: {cidade}")
+        print(f"  Latitude/Longitude: {localizacao}")
+        print('---' * 18)
+
+        # Criar um socket UDP
+        servidor_socket = Canal(public_ip, porta)
+        servidor_socket.associarSocketPorta('0.0.0.0', porta)
+
+        # clientes
+        clientes = {}
+
+        #Maximo de requisições
+        maximoRequisicap = 10
+        contador = 0
+
+        break
+
+    except Exception as e:
+        print(f"Erro ao estabelecer conexão: {str(e)}")
+        continue
+    except:
+        print("Revisar dados informados")
+        continue
 
 def verificarMonior(address):
 

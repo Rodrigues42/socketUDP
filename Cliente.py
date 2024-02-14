@@ -1,31 +1,51 @@
 
 import threading
+import socket
 from Canal import Canal
 
 # Configurar o cliente
 host = 'localhost'
-porta = 9000
+portaServidor = 9000
+portaCliente = 9001
 
-cliente_socket = Canal(host, porta)
-cliente_socket.definirTimeout(10)
+while True:
+    try:
+        portaCliente = int(input("Qual é a porta do cliente que deseja conectar? "))
+        host = input("Qual é o IP do servidor ? (Digite enter ou localhost para 127.0.0.1) ") 
+        portaServidor = int(input("Qual é a porta do servidor ? "))
 
-monitorGeral = cliente_socket.criarPropriedade()
+        if host == 'localhost' or host == None:
+            host = '127.0.0.1'
+
+        print('---' * 25)
+        print(f"Cliente: ({socket.gethostbyname(socket.gethostname())} : {portaCliente}) | servidor: ({host} : {portaServidor})")
+
+        servidor_socket = Canal(host, portaServidor)
+        servidor_socket.associarSocketPorta('0.0.0.0', portaCliente)
+        servidor_socket.definirTimeout(10)
+
+        monitorGeral = servidor_socket.criarPropriedade()
+
+        break
+    except:
+        print("Revisar dados informados")
+        continue
 
 def enviar(mensagem):
 
-    monitor  = cliente_socket.criarPropriedade()
+    monitor  = servidor_socket.criarPropriedade()
 
     # Enviar dados ao servidor
-    address = (host, porta)
-    cliente_socket.enviar(monitor, mensagem.encode('utf-8'), address)
-    print(f"('{host}', {porta}) - Mensagem: '{mensagem}' Enviada ao servidor")
+    address = (host, portaServidor)
+    servidor_socket.enviar(monitor, mensagem.encode('utf-8'), address)
+    print(f"('{host}', {portaServidor}) - Mensagem: '{mensagem}' Enviada ao servidor")
 
-    dados, address = cliente_socket.receber(monitor)
+    dados, address = servidor_socket.receber(monitor)
     if dados is not bytes():
-        print(f"('{host}', {porta}) - Dados recebidos: {dados.decode('utf-8')}")
+        print(f"('{host}', {portaServidor}) - Dados recebidos: {dados.decode('utf-8')}")
         print("---" * 20)
     
-    cliente_socket.juntarPropriedadeGeralComParcial(monitorGeral, monitor)
+    servidor_socket.juntarPropriedadeGeralComParcial(monitorGeral, monitor)
 
 def enviarParalelo(mensagens):
     

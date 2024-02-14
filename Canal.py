@@ -30,9 +30,10 @@ class Canal():
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.address = None
 
-    def associarSocketPorta(self):
+    def associarSocketPorta(self, host, port):
         # Vincular o socket ao endereço e porta
-        self.__socket.bind((self.host, self.port))
+        self.__socket.bind((host, port))
+            
     
     def definirTimeout(self, timeout: float):
         self.__socket.settimeout(timeout)
@@ -171,7 +172,7 @@ class Canal():
             eliminarMensagem = self.__eliminarMensagem(prob_eliminar_mensagem)
             if eliminarMensagem:
                 self.__mensagens.append("Eliminada")
-                print(f"{address} - Erros adicionados na mensagem: [{self.Cor.VERMELHO}{", ".join(self.__mensagens)}{self.Cor.RESET}]")
+                print(f'''{address} - Erros adicionados na mensagem: [{self.Cor.VERMELHO}{", ".join(self.__mensagens)}{self.Cor.RESET}]''')
                 self.__mensagens = []
                 return 1, dados
 
@@ -190,7 +191,7 @@ class Canal():
             if cortada:
                 self.__mensagens.append("Cortada")
 
-            print(f"{address} - Erros adicionados na mensagem: [{self.Cor.VERMELHO}{", ".join(self.__mensagens)}{self.Cor.RESET}]")
+            print(f'''{address} - Erros adicionados na mensagem: [{self.Cor.VERMELHO}{", ".join(self.__mensagens)}{self.Cor.RESET}]''')
             self.__mensagens = []
             
             return 0, dados
