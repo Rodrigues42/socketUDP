@@ -2,12 +2,25 @@ import logging
 import socket
 import random
 import time
+import json
+import os
+from datetime import datetime
 
-prob_eliminar_mensagem = 4
-prob_duplicar_segmento = 3
-prop_corromper_byte = 2
-milesegundos_delay = 0
-cortar_bytes = 1024
+caminho_arquivo = "EP1\\config.json"
+
+# Ler o arquivo JSON
+if os.path.exists(caminho_arquivo):
+    with open(os.getcwd() + "\\" + caminho_arquivo) as arquivo:
+        dados_config = json.load(arquivo)
+
+        # Obter valores do arquivo de configuração
+        prob_eliminar_mensagem = dados_config['Probabilidades']['eliminar_mensagem']
+        prob_duplicar_mensagem = dados_config['Probabilidades']['duplicar_mensagem']
+        prop_corromper_byte = dados_config['Probabilidades']['corromper_byte']
+        milesegundos_delay = dados_config['Tempo']['delay']
+        cortar_bytes = dados_config['Bytes']['cortar']
+else:
+    print(f'O arquivo {caminho_arquivo} não foi encontrado.')
 
 class Canal():
     def __init__(self, host, port):
@@ -16,7 +29,6 @@ class Canal():
         self.port = port
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.address = None
-        self.propriedades = Propiedades()
 
     def associarSocketPorta(self):
         # Vincular o socket ao endereço e porta
@@ -25,20 +37,18 @@ class Canal():
     def definirTimeout(self, timeout: float):
         self.__socket.settimeout(timeout)
 
-    def enviar(self, mensagem: bytes, address: tuple = None):
+    def enviar(self, monitor, mensagem: bytes, address: tuple = None):
         '''Envia dados ao servidor/cliente e aguarda uma resposta'''
 
-        mensagemEliminada, mensagem = self.propriedades.consolidarErros(mensagem)
+        mensagemEliminada, mensagem = monitor.consolidarErros(mensagem, address)
         
         if mensagemEliminada:
             return 0
 
         if address is None:
-            self.__socket.sendto(mensagem, (self.host, self.port))
+            return self.__socket.sendto(mensagem, (self.host, self.port))
         else:
-            self.__socket.sendto(mensagem, (address[0], address[1]))
-
-        return 1
+            return self.__socket.sendto(mensagem, (address[0], address[1]))
     
     def receber(self) -> tuple:
         ''' Recebe dados do servidor/cliente e retorna o endereço do servidor/cliente '''
@@ -52,6 +62,7 @@ class Canal():
 
         except socket.timeout as e:
             logging.error(f"Timeout ao esperar retorno do servidor: {e}")
+            print("---" * 20)
 
         except socket.error as e:
             logging.error(f"Erro de socket: {e}")
@@ -60,123 +71,146 @@ class Canal():
             logging.error(f"Outro exceção: {e}")
 
         finally:
-            # if self.address is None:
-            #     self.__socket.close()
-
             return dados, socket_address
- 
-    def consolidarErros(self):
-        self.propriedades.ImprimirErros()
 
-class Propiedades():
-    def __init__(self):
-        super().__init__()
-        self.mensagens = 0
-        self.mensagensEliminadas = 0
-        self.mensagensAtrasadas = 0
-        self.mensagensDuplicadas = 0
-        self.mensagensCorrompidas = 0
-        self.mensagensCortadas = 0
+    def criarPropriedade(self):
+        return self.Propiedades()
 
-    def __eliminarMensagem(self, probabilidade: float) -> bool:
-        '''Pocentagem de 0 a 100'''
+    def juntarPropriedadeGeralComParcial(self, monitorGeral, monitorParcial):
+        monitorGeral.mensagensTotal += monitorParcial.mensagensTotal
+        monitorGeral.mensagensEliminadas += monitorParcial.mensagensEliminadas
+        monitorGeral.mensagensAtrasadas += monitorParcial.mensagensAtrasadas
+        monitorGeral.mensagensDuplicadas += monitorParcial.mensagensDuplicadas
+        monitorGeral.mensagensCorrompidas += monitorParcial.mensagensCorrompidas
+        monitorGeral.mensagensCortadas += monitorParcial.mensagensCortadas
 
-        resultado = random.uniform(0, 1)
-        
-        if resultado <= (probabilidade/100):
+    class Propiedades():
+        def __init__(self):
+            super().__init__()
+            self.mensagensTotal = 0
+            self.mensagensEliminadas = 0
+            self.mensagensAtrasadas = 0
+            self.mensagensDuplicadas = 0
+            self.mensagensCorrompidas = 0
+            self.mensagensCortadas = 0
+            self.mensagens = []
+
+        def __eliminarMensagem(self, probabilidade: float) -> bool:
+            '''Pocentagem de 0 a 100'''
+
+            resultado = random.uniform(0, 1)
             
-            print("Mensagem Eliminada")
+            if resultado <= (probabilidade/100):
 
-            self.mensagensEliminadas += 1
+                self.mensagensEliminadas += 1
 
-            return True
-        
-        return False
-
-    def __delay(self, mile: float):
-        '''delay de milesegundos'''
-        
-        print("Delay")
-        time.sleep(mile/1000)
-        self.mensagensAtrasadas += 1
-
-    def __duplicarSegmento(self, probabilidade: float, dado: bytes) -> bytes:
-        '''Pocentagem de 0 a 100'''
-
-        resultado = random.uniform(0, 1)
-        
-        if resultado <= (probabilidade/100):
+                return True
             
-            print("Segmento duplicado")
+            return False
 
-            self.mensagensDuplicadas += 1
-
-            return dado + dado
-        
-        return dado
-
-    def __corromperByte(self, probabilidade: float, dado: bytes):
-        '''Corrompe 1 byte do dado aleatoriamente'''
-        
-        resultado = random.uniform(0, 1)
-        
-        if resultado <= (probabilidade/100):
+        def __delay(self, mile: float) -> None:
+            '''delay de milesegundos'''
             
-            dadoComrrompido = list(dado)
+            time.sleep(mile/1000)
+            self.mensagensAtrasadas += 1
 
-            index = dadoComrrompido.index(dadoComrrompido[random.randint(0, len(dadoComrrompido) - 1)])
-            #dadoComrrompido[index] = random.randint(0, 255) tratar para aceitar dessa maneira
-            dadoComrrompido[index] += 1
+        def __duplicarSegmento(self, probabilidade: float, dado: bytes) -> bytes:
+            '''Pocentagem de 0 a 100'''
 
-            print("Dados corrompidos")
-
-            self.mensagensCorrompidas += 1
-
-            return bytes(dadoComrrompido)
-        
-        return dado
-
-    def __cortarBytes(self, tamanho: int, dado: bytes):
-        ''' Corta o dados maiores que tamanho em bytes'''
-        
-        dadoCortado = dado
-        dadoList = list(dado)
-        
-        if len(dadoList) > tamanho:
+            resultado = random.uniform(0, 1)
             
-            dadoCortado = dadoList[0:tamanho]
-            print("Dados cortados")
+            if resultado <= (probabilidade/100):
+                
+                self.mensagensDuplicadas += 1
 
-            self.mensagensCortadas += 1
+                return dado + dado, True
+            
+            return dado, False
 
-        return bytes(dadoCortado)
+        def __corromperByte(self, probabilidade: float, dado: bytes):
+            '''Corrompe 1 byte do dado aleatoriamente'''
+            
+            resultado = random.uniform(0, 1)
+            
+            if resultado <= (probabilidade/100):
+                
+                dadoComrrompido = list(dado)
 
-    def consolidarErros(self, dados: bytes) -> tuple:
-        
-        self.mensagens += 1
+                index = dadoComrrompido.index(dadoComrrompido[random.randint(0, len(dadoComrrompido) - 1)])
+                #dadoComrrompido[index] = random.randint(0, 255) tratar para aceitar dessa maneira
+                dadoComrrompido[index] += 1
 
-        self.__delay(milesegundos_delay)
+                self.mensagensCorrompidas += 1
 
-        dados = self.__duplicarSegmento(prob_duplicar_segmento, dados)
+                return bytes(dadoComrrompido), True
+            
+            return dado, False
 
-        dados = self.__corromperByte(prop_corromper_byte, dados)
+        def __cortarBytes(self, tamanho: int, dado: bytes):
+            ''' Corta o dados maiores que tamanho em bytes'''
+            
+            dadoCortado = dado
+            dadoList = list(dado)
+            
+            if len(dadoList) > tamanho:
+                
+                dadoCortado = dadoList[0:tamanho]
 
-        dados = self.__cortarBytes(cortar_bytes, dados)
+                self.mensagensCortadas += 1
 
-        eliminarMensagem = self.__eliminarMensagem(prob_eliminar_mensagem)
-        if eliminarMensagem:
-            return 1, dados
+                return bytes(dadoCortado), True
+            
+            return dado, False
 
-        return 0, dados
+        def consolidarErros(self, dados: bytes, address: tuple) -> tuple:
 
-    def ImprimirErros(self):
-        print( "\n" + "---" * 5 + " Consolidação de erros " + "---" * 5)
-        print(f'''
-            Total de mensagens enviadas: {self.mensagens}
+            self.mensagensTotal += 1
+
+            eliminarMensagem = self.__eliminarMensagem(prob_eliminar_mensagem)
+            if eliminarMensagem:
+                self.mensagens.append("Eliminada")
+                print(f"{address} - Erros adicionados na mensagem: [{self.Cor.VERMELHO}{", ".join(self.mensagens)}{self.Cor.RESET}]")
+                self.mensagens = []
+                return 1, dados
+
+            self.__delay(milesegundos_delay)
+            self.mensagens.append("Delay")
+
+            dados, duplicado = self.__duplicarSegmento(prob_duplicar_mensagem, dados)
+            if duplicado:
+                self.mensagens.append("Duplicada")
+
+            dados, corrompido = self.__corromperByte(prop_corromper_byte, dados)
+            if corrompido:
+                self.mensagens.append("Corrompida")
+
+            dados, cortada = self.__cortarBytes(cortar_bytes, dados)
+            if cortada:
+                self.mensagens.append("Cortada")
+
+            print(f"{address} - Erros adicionados na mensagem: [{self.Cor.VERMELHO}{", ".join(self.mensagens)}{self.Cor.RESET}]")
+            self.mensagens = []
+            
+            return 0, dados
+
+        def ImprimirErros(self):
+            print( "\n" + "---" * 5 + " Consolidação de erros " + "---" * 5)
+            print(f'''
+            Total de mensagens enviadas: {self.mensagensTotal}
             Total de mensagens eliminadas: {self.mensagensEliminadas}
             Total de mensagens atrasadas: {self.mensagensAtrasadas}
             Total de mensagens duplicadas: {self.mensagensDuplicadas}
             Total de mensagens corrompidas: {self.mensagensCorrompidas}
             Total de mensagens cortadas: {self.mensagensCortadas}
-        ''')
-        print("---" * 18)
+            ''')
+            print("---" * 18)
+
+        class Cor:
+            RESET = '\033[0m'
+            VERMELHO = '\033[91m'
+            VERDE = '\033[92m'
+            AMARELO = '\033[93m'
+            AZUL = '\033[94m'
+            ROXO = '\033[95m'
+            CIANO = '\033[96m'
+            BRANCO = '\033[97m'

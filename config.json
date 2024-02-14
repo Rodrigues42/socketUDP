@@ -1,0 +1,15 @@
+{
+    "Probabilidades": {
+        "eliminar_mensagem": 4,
+        "duplicar_mensagem": 3,
+        "corromper_byte": 2
+    },
+
+    "Tempo": {
+        "delay": 80
+    },
+
+    "Bytes": {
+        "cortar": 1024
+    }
+}

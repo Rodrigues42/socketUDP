@@ -9,15 +9,23 @@ porta = 9000
 cliente_socket = Canal(host, porta)
 cliente_socket.definirTimeout(5)
 
+monitorGeral = cliente_socket.criarPropriedade()
+
 def enviar(mensagem):
 
+    monitor  = cliente_socket.criarPropriedade()
+
     # Enviar dados ao servidor
-    cliente_socket.enviar(mensagem.encode('utf-8'))
-    print(f"({host} : {porta}) - Mensagem: '{mensagem}' Enviada ao servidor")
+    address = (host, porta)
+    cliente_socket.enviar(monitor, mensagem.encode('utf-8'), address)
+    print(f"('{host}', {porta}) - Mensagem: '{mensagem}' Enviada ao servidor")
+
+    cliente_socket.juntarPropriedadeGeralComParcial(monitorGeral, monitor)
 
     dados, address = cliente_socket.receber()
     if dados is not bytes():
-        print(f"{address} - Dados recebidos: {dados.decode('utf-8')}")
+        print(f"('{host}', {porta}) - Dados recebidos: {dados.decode('utf-8')}")
+        print("---" * 20)
 
 def enviarParalelo(mensagens):
     
@@ -58,4 +66,4 @@ while True:
     else:
         enviarParalelo(mensagens)
 
-    cliente_socket.consolidarErros()
+    monitorGeral.ImprimirErros()
