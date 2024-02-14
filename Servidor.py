@@ -12,13 +12,23 @@ servidor_socket.associarSocketPorta()
 # clientes
 clientes = {}
 
-def enviarResposta(address):
+#Maximo de requisições
+maximoRequisicap = 20
+contador = 0
+
+def verificarMonior(address):
 
     if address in clientes:
         monitor = clientes[address]
     else:
         monitor = servidor_socket.criarPropriedade()
         clientes[address] = monitor
+    
+    return monitor
+
+def enviarResposta(address):
+
+    monitor = verificarMonior(address)
 
     # Enviar uma resposta para o cliente
     servidor_socket.enviar(monitor, b"Ok", address)
@@ -37,10 +47,6 @@ def receberResposta(address, evento):
 
     address.append(endereco_cliente)
     evento.set()
-
-
-maximoRequisicap = 200
-contador = 0
 
 while True:
 

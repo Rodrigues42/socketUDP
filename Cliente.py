@@ -7,7 +7,7 @@ host = 'localhost'
 porta = 9000
 
 cliente_socket = Canal(host, porta)
-cliente_socket.definirTimeout(5)
+cliente_socket.definirTimeout(10)
 
 monitorGeral = cliente_socket.criarPropriedade()
 
@@ -20,12 +20,12 @@ def enviar(mensagem):
     cliente_socket.enviar(monitor, mensagem.encode('utf-8'), address)
     print(f"('{host}', {porta}) - Mensagem: '{mensagem}' Enviada ao servidor")
 
-    cliente_socket.juntarPropriedadeGeralComParcial(monitorGeral, monitor)
-
-    dados, address = cliente_socket.receber()
+    dados, address = cliente_socket.receber(monitor)
     if dados is not bytes():
         print(f"('{host}', {porta}) - Dados recebidos: {dados.decode('utf-8')}")
         print("---" * 20)
+    
+    cliente_socket.juntarPropriedadeGeralComParcial(monitorGeral, monitor)
 
 def enviarParalelo(mensagens):
     
@@ -47,16 +47,18 @@ while True:
 
     print("----" * 20)
 
-    quantidadeMensagem = int(input("Quantas mensagens deseja enviar ao servidor? "))
-    forma = input("Qual a forma de envio sequencial ou paralelo? (sequencial (S) ou paralelo (P)): ")
-    mensagens = list()
+    try:
+        quantidadeMensagem = int(input("Quantas mensagens deseja enviar ao servidor? "))
+        forma = input("Qual a forma de envio sequencial ou paralelo? (sequencial (S) ou paralelo (P)): ")
+        mensagens = list()
+    except:
+        continue
 
     for i in range(quantidadeMensagem):
         mensagem = input(f"{i+1}° Mensagem: ")
         mensagens.append(mensagem)
 
     if forma.upper() == 'S':
-        
         print("----" * 14)
         print("Forma sequencial")
         print("----" * 14)
