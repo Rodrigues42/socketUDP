@@ -62,10 +62,11 @@ class Canal():
             self.address = socket_address
 
         except socket.timeout as e:
-            logging.error(f"Timeout ao esperar retorno do servidor: {e}")
-            print("---" * 20)
+            logging.error(f"Timeout ao esperar resposta: {e}")
             if monitor is not None:
                 monitor.mensagemNaoRetornada()
+            
+            return socket.timeout
 
         except socket.error as e:
             logging.error(f"Erro de socket: {e}")
@@ -73,8 +74,7 @@ class Canal():
         except Exception as e:
             logging.error(f"Outro exceção: {e}")
 
-        finally:
-            return dados, socket_address
+        return dados, socket_address
 
     def criarPropriedade(self):
         return self.Propiedades()

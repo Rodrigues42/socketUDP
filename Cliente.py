@@ -14,7 +14,7 @@ while True:
         host = input("Qual é o IP do servidor ? (Digite enter ou localhost para 127.0.0.1) ") 
         portaServidor = int(input("Qual é a porta do servidor ? "))
 
-        if host == 'localhost' or host == None:
+        if host == 'localhost' or host == '':
             host = '127.0.0.1'
 
         print('---' * 25)
@@ -22,7 +22,7 @@ while True:
 
         servidor_socket = Canal(host, portaServidor)
         servidor_socket.associarSocketPorta('0.0.0.0', portaCliente)
-        servidor_socket.definirTimeout(10)
+        servidor_socket.definirTimeout(3)
 
         monitorGeral = servidor_socket.criarPropriedade()
 
@@ -40,11 +40,14 @@ def enviar(mensagem):
     servidor_socket.enviar(monitor, mensagem.encode('utf-8'), address)
     print(f"('{host}', {portaServidor}) - Mensagem: '{mensagem}' Enviada ao servidor")
 
-    dados, address = servidor_socket.receber(monitor)
-    if dados is not bytes():
-        print(f"('{host}', {portaServidor}) - Dados recebidos: {dados.decode('utf-8')}")
-        print("---" * 20)
-    
+    try:
+        dados, address = servidor_socket.receber(monitor)
+        if dados is not bytes():
+            print(f"('{host}', {portaServidor}) - Dados recebidos: {dados.decode('utf-8')}")
+    except:
+        pass
+
+    print("---" * 20)
     servidor_socket.juntarPropriedadeGeralComParcial(monitorGeral, monitor)
 
 def enviarParalelo(mensagens):

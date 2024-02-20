@@ -35,13 +35,10 @@ while True:
         # Criar um socket UDP
         servidor_socket = Canal(public_ip, porta)
         servidor_socket.associarSocketPorta('0.0.0.0', porta)
+        servidor_socket.definirTimeout(10)
 
         # clientes
         clientes = {}
-
-        #Maximo de requisições
-        maximoRequisicap = 10
-        contador = 0
 
         break
 
@@ -70,43 +67,44 @@ def enviarResposta(address):
     servidor_socket.enviar(monitor, b"Ok", address)
     print(f"{address} - Resposta oK Enviada")
 
-def receberResposta(address, evento):
+def receberResposta(address, eventoCliente, eventoTimeout):
 
     # Receber dados do cliente
-    dados, endereco_cliente = servidor_socket.receber()
-    print("---" * 20)
-    print(f"{endereco_cliente} - Dados recebido: {dados.decode('utf-8')}")
-    
-    # Verificar se o cliente já enviou algo para o servidor e criar um monitor especifico para ele
-    if endereco_cliente not in clientes:
-        clientes[endereco_cliente] = servidor_socket.criarPropriedade()
+    try:
+        dados, endereco_cliente = servidor_socket.receber()
 
-    address.append(endereco_cliente)
-    evento.set()
+        print("---" * 20)
+        print(f"{endereco_cliente} - Dados recebido: {dados.decode('utf-8')}")
+        
+        # Verificar se o cliente já enviou algo para o servidor e criar um monitor especifico para ele
+        if endereco_cliente not in clientes:
+            clientes[endereco_cliente] = servidor_socket.criarPropriedade()
+
+        address.append(endereco_cliente)
+        eventoCliente.set()
+    except:
+        print("Servidor Encerrado")
+        eventoTimeout.set()
 
 while True:
-
-    contador += 1
     
     print("---" * 20)
     print(f"Servidor UDP aguardando em {host}:{porta}")
 
-    address, evento = [], threading.Event()
+    address, eventoCliente, eventoTimeout = [], threading.Event(), threading.Event()
 
-    threadReceber = threading.Thread(target=receberResposta(address, evento))
+    threadReceber = threading.Thread(target=receberResposta(address, eventoCliente, eventoTimeout))
     threadReceber.start()
     threadReceber.join()
 
-    evento.wait()
+    if eventoTimeout.is_set():
+        break
+
+    eventoCliente.wait()
 
     threadEnviar = threading.Thread(target=enviarResposta(address[0]))
     threadEnviar.start()
     threadEnviar.join()
-
-    if contador >= maximoRequisicap:
-        continua = input("Continuar (s/sair): ")
-        if continua == 'sair':
-            break
 
 for address in clientes:
     monitor = clientes[address]
