@@ -4,14 +4,14 @@ import requests
 from Canal import Canal
 
 # Configurar o servidor
-host = 'localhost'
+host = '127.0.0.1'
 porta = 9000
 
 while True:
     try:
         portaServidor = int(input("Qual é a porta que o servidor vai escutar ? "))
 
-        host = socket.gethostbyname(socket.gethostname())
+        hostServidor = socket.gethostbyname(socket.gethostname())
 
         response = requests.get('https://ipinfo.io')
         public_ip = response.json()['ip']
@@ -33,12 +33,17 @@ while True:
         print('---' * 18)
 
         # Criar um socket UDP
-        servidor_socket = Canal(public_ip, porta)
-        servidor_socket.associarSocketPorta('0.0.0.0', porta)
-        servidor_socket.definirTimeout(10)
+        servidor_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        servidor_socket.bind((host, portaServidor))
+        servidor_socket.settimeout(10)
 
         # clientes
         clientes = {}
+
+        # Canal
+        canal = Canal(host, porta)
+
+        eventoTimeout = threading.Event()
 
         break
 
@@ -54,57 +59,48 @@ def verificarMonior(address):
     if address in clientes:
         monitor = clientes[address]
     else:
-        monitor = servidor_socket.criarPropriedade()
+        monitor = canal.criarPropriedade()
         clientes[address] = monitor
     
     return monitor
 
-def enviarResposta(address):
-
-    monitor = verificarMonior(address)
-
-    # Enviar uma resposta para o cliente
-    servidor_socket.enviar(monitor, b"Ok", address)
-    print(f"{address} - Resposta oK Enviada")
-
-def receberResposta(address, eventoCliente, eventoTimeout):
+def receberResposta(eventoTimeout):
 
     # Receber dados do cliente
     try:
-        dados, endereco_cliente = servidor_socket.receber()
+        dados, endereco_cliente = servidor_socket.recvfrom(1024)
 
         print("---" * 20)
         print(f"{endereco_cliente} - Dados recebido: {dados.decode('utf-8')}")
-        
-        # Verificar se o cliente já enviou algo para o servidor e criar um monitor especifico para ele
-        if endereco_cliente not in clientes:
-            clientes[endereco_cliente] = servidor_socket.criarPropriedade()
 
-        address.append(endereco_cliente)
-        eventoCliente.set()
-    except:
+        enviarResposta(endereco_cliente)
+
+    except TimeoutError:
         print("Servidor Encerrado")
         eventoTimeout.set()
+
+def enviarResposta(endereco_cliente):
+        
+    #Verificar se o cliente já enviou algo para o servidor e criar um monitor especifico para ele
+    monitor = verificarMonior(endereco_cliente)
+
+    # Enviar uma resposta para o cliente
+    mensagem = b"Ok"
+    servidor_socket.sendto(mensagem, (endereco_cliente[0], endereco_cliente[1]))
+
+    monitor.consolidarErros(mensagem, endereco_cliente, True)
+
+    print(f"{endereco_cliente} - Resposta oK Enviada")
 
 while True:
     
     print("---" * 20)
     print(f"Servidor UDP aguardando em {host}:{porta}")
 
-    address, eventoCliente, eventoTimeout = [], threading.Event(), threading.Event()
-
-    threadReceber = threading.Thread(target=receberResposta(address, eventoCliente, eventoTimeout))
-    threadReceber.start()
-    threadReceber.join()
+    receberResposta(eventoTimeout)
 
     if eventoTimeout.is_set():
         break
-
-    eventoCliente.wait()
-
-    threadEnviar = threading.Thread(target=enviarResposta(address[0]))
-    threadEnviar.start()
-    threadEnviar.join()
 
 for address in clientes:
     monitor = clientes[address]

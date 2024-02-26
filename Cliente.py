@@ -1,4 +1,3 @@
-
 import threading
 import socket
 from Canal import Canal
@@ -22,7 +21,7 @@ while True:
 
         servidor_socket = Canal(host, portaServidor)
         servidor_socket.associarSocketPorta('0.0.0.0', portaCliente)
-        servidor_socket.definirTimeout(3)
+        servidor_socket.definirTimeout(5)
 
         monitorGeral = servidor_socket.criarPropriedade()
 
@@ -92,3 +91,4 @@ while True:
         enviarParalelo(mensagens)
 
     monitorGeral.ImprimirErros()
+    break

@@ -28,17 +28,16 @@ class Canal():
         self.host = host
         self.port = port
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.address = None
-
+        self.address = None    
+    
     def associarSocketPorta(self, host, port):
         # Vincular o socket ao endereço e porta
         self.__socket.bind((host, port))
-            
-    
+
     def definirTimeout(self, timeout: float):
         self.__socket.settimeout(timeout)
 
-    def enviar(self, monitor, mensagem: bytes, address: tuple = None):
+    def enviar(self, monitor, mensagem: bytes, address: tuple):
         '''Envia dados ao servidor/cliente e aguarda uma resposta'''
 
         mensagemEliminada, mensagem = monitor.consolidarErros(mensagem, address)
@@ -46,10 +45,7 @@ class Canal():
         if mensagemEliminada:
             return 0
 
-        if address is None:
-            return self.__socket.sendto(mensagem, (self.host, self.port))
-        else:
-            return self.__socket.sendto(mensagem, (address[0], address[1]))
+        return self.__socket.sendto(mensagem, (address[0], address[1]))
     
     def receber(self, monitor = None) -> tuple:
         ''' Recebe dados do servidor/cliente e retorna o endereço do servidor/cliente '''
@@ -66,13 +62,15 @@ class Canal():
             if monitor is not None:
                 monitor.mensagemNaoRetornada()
             
-            return socket.timeout
+            raise socket.timeout
 
         except socket.error as e:
             logging.error(f"Erro de socket: {e}")
+            raise Exception
 
         except Exception as e:
             logging.error(f"Outro exceção: {e}")
+            raise Exception
 
         return dados, socket_address
 
@@ -91,7 +89,6 @@ class Canal():
             self.__mensagensDuplicadas = 0
             self.__mensagensCorrompidas = 0
             self.__mensagensCortadas = 0
-            self.__mensagemNaoRetornada = 0
             self.__mensagens = []
 
         def __eliminarMensagem(self, probabilidade: float) -> bool:
@@ -165,19 +162,21 @@ class Canal():
         def __adicionarMensagemNaoRecebida(self):
             self.__mensagemNaoRetornada += 1
 
-        def consolidarErros(self, dados: bytes, address: tuple) -> tuple:
+        def consolidarErros(self, dados: bytes, address: tuple, servidor: bool = False) -> tuple:
 
             self.__mensagensTotal += 1
 
-            eliminarMensagem = self.__eliminarMensagem(prob_eliminar_mensagem)
-            if eliminarMensagem:
-                self.__mensagens.append("Eliminada")
-                print(f'''{address} - Erros adicionados na mensagem: [{self.Cor.VERMELHO}{", ".join(self.__mensagens)}{self.Cor.RESET}]''')
-                self.__mensagens = []
-                return 1, dados
+            if not servidor:
 
-            self.__delay(milesegundos_delay)
-            self.__mensagens.append("Delay")
+                eliminarMensagem = self.__eliminarMensagem(prob_eliminar_mensagem)
+                if eliminarMensagem:
+                    self.__mensagens.append("Eliminada")
+                    print(f'''{address} - Erros adicionados na mensagem: [{self.Cor.VERMELHO}{", ".join(self.__mensagens)}{self.Cor.RESET}]''')
+                    self.__mensagens = []
+                    return 1, dados
+
+                self.__delay(milesegundos_delay)
+                self.__mensagens.append("Delay")
 
             dados, duplicado = self.__duplicarSegmento(prob_duplicar_mensagem, dados)
             if duplicado:
@@ -196,9 +195,6 @@ class Canal():
             
             return 0, dados
 
-        def mensagemNaoRetornada(self):
-            self.__adicionarMensagemNaoRecebida()
-
         def unirMonitores(self, monitor):
             self.__mensagensTotal += monitor.__mensagensTotal
             self.__mensagensEliminadas += monitor.__mensagensEliminadas
@@ -206,7 +202,6 @@ class Canal():
             self.__mensagensDuplicadas += monitor.__mensagensDuplicadas
             self.__mensagensCorrompidas += monitor.__mensagensCorrompidas
             self.__mensagensCortadas += monitor.__mensagensCortadas
-            self.__mensagemNaoRetornada += monitor.__mensagemNaoRetornada
 
         def ImprimirErros(self):
             print( "\n" + "---" * 5 + " Consolidação de erros " + "---" * 5)
@@ -217,7 +212,6 @@ class Canal():
             Total de mensagens duplicadas: {self.__mensagensDuplicadas}
             Total de mensagens corrompidas: {self.__mensagensCorrompidas}
             Total de mensagens cortadas: {self.__mensagensCortadas}
-            {f"Total de mensagens não retornadas: {self.__mensagemNaoRetornada}" if self.__mensagemNaoRetornada > 0 else ""}
             ''')
             print("---" * 18)
 
