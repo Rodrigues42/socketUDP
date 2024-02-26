@@ -7,6 +7,7 @@ from Canal import Canal
 host = '127.0.0.1'
 porta = 9000
 
+# Inicialização, pede a porta que o servidor ira escutar
 while True:
     try:
         portaServidor = int(input("Qual é a porta que o servidor vai escutar ? "))
@@ -79,6 +80,7 @@ def receberResposta(eventoTimeout):
         print("Servidor Encerrado")
         eventoTimeout.set()
 
+# Responde um ACK para o cliente
 def enviarResposta(endereco_cliente):
         
     #Verificar se o cliente já enviou algo para o servidor e criar um monitor especifico para ele

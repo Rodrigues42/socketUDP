@@ -7,9 +7,10 @@ host = 'localhost'
 portaServidor = 9000
 portaCliente = 9001
 
+# Inicialização: Porta Cliente | IP servidor | Porta Servidor
 while True:
     try:
-        portaCliente = int(input("Qual é a porta do cliente que deseja conectar? "))
+        portaCliente = int(input("Qual é a porta do cliente? "))
         host = input("Qual é o IP do servidor ? (Digite enter ou localhost para 127.0.0.1) ") 
         portaServidor = int(input("Qual é a porta do servidor ? "))
 
@@ -65,6 +66,7 @@ def enviarParalelo(mensagens):
     for thread in threads:
         thread.join()
 
+# Pergunta Quantas mensagens quer enviar | Se é sequencial ou paralelo
 while True:
 
     print("----" * 20)

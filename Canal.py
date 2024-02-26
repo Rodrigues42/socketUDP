@@ -8,7 +8,7 @@ from datetime import datetime
 
 caminho_arquivo = "EP1\\config.json"
 
-# Ler o arquivo JSON
+# 4 - Parametrizar CONFIG - Ler o arquivo JSON
 if os.path.exists(caminho_arquivo):
     with open(os.getcwd() + "\\" + caminho_arquivo) as arquivo:
         dados_config = json.load(arquivo)
@@ -23,6 +23,7 @@ else:
     print(f'O arquivo {caminho_arquivo} não foi encontrado.')
 
 class Canal():
+    # 2 - Criar segmento UDP
     def __init__(self, host, port):
         super().__init__()
         self.host = host
@@ -37,6 +38,7 @@ class Canal():
     def definirTimeout(self, timeout: float):
         self.__socket.settimeout(timeout)
 
+    # 1 - Receber pedidos de envio
     def enviar(self, monitor, mensagem: bytes, address: tuple):
         '''Envia dados ao servidor/cliente e aguarda uma resposta'''
 
@@ -47,6 +49,7 @@ class Canal():
 
         return self.__socket.sendto(mensagem, (address[0], address[1]))
     
+    # 3 - Receber segmento UDP
     def receber(self, monitor = None) -> tuple:
         ''' Recebe dados do servidor/cliente e retorna o endereço do servidor/cliente '''
 
@@ -91,6 +94,7 @@ class Canal():
             self.__mensagensCortadas = 0
             self.__mensagens = []
 
+        # 5 - Eliminar Mensagem
         def __eliminarMensagem(self, probabilidade: float) -> bool:
             '''Pocentagem de 0 a 100'''
 
@@ -104,12 +108,14 @@ class Canal():
             
             return False
 
+        # 6 - Gerar Atraso
         def __delay(self, mile: float) -> None:
             '''delay de milesegundos'''
             
             time.sleep(mile/1000)
             self.__mensagensAtrasadas += 1
 
+        # 7 - Duplicar o Segmento
         def __duplicarSegmento(self, probabilidade: float, dado: bytes) -> bytes:
             '''Pocentagem de 0 a 100'''
 
@@ -123,6 +129,9 @@ class Canal():
             
             return dado, False
 
+                # 8 - Corromper somente 1 byte
+        
+        # 8 - Corromper somente 1 byte
         def __corromperByte(self, probabilidade: float, dado: bytes):
             '''Corrompe 1 byte do dado aleatoriamente'''
             
