@@ -10,7 +10,7 @@ caminho_arquivo = "EP1\\config.json"
 
 # 4 - Parametrizar CONFIG - Ler o arquivo JSON
 if os.path.exists(caminho_arquivo):
-    with open(os.getcwd() + "\\" + caminho_arquivo) as arquivo:
+    with open(os.getcwd() + "/" + caminho_arquivo) as arquivo:
         dados_config = json.load(arquivo)
 
         # Obter valores do arquivo de configuração
@@ -167,9 +167,6 @@ class Canal():
                 return bytes(dadoCortado), True
             
             return dado, False
-
-        def __adicionarMensagemNaoRecebida(self):
-            self.__mensagemNaoRetornada += 1
 
         def consolidarErros(self, dados: bytes, address: tuple, servidor: bool = False) -> tuple:
 
