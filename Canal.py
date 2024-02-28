@@ -6,7 +6,7 @@ import json
 import os
 from datetime import datetime
 
-caminho_arquivo = "EP1\\config.json"
+caminho_arquivo = "config.json"
 
 # 4 - Parametrizar CONFIG - Ler o arquivo JSON
 if os.path.exists(caminho_arquivo):
